@@ -183,15 +183,15 @@ bool init(int id) {
     devices.reset(getDevices(platform, CL_DEVICE_TYPE_ALL, &num_devices));
     printf("Found %d devices.\n", num_devices);
 
-//    if (id >= num_devices) {
-//        fprintf(stderr, "Invalid device id %d\n", id);
-//        return false;
-//    }
-//    // We'll just use the first device.
-//    device = devices[id];
-//    printf("Device %d:\n", id);
+    if (id >= num_devices) {
+        fprintf(stderr, "Invalid device id %d\n", id);
+        return false;
+    }
+    // We'll just use the first device.
+    device = devices[id];
+    printf("Device %d:\n", id);
 
-    device = devices[0];
+//    device = devices[0];
 
     // Display some device information.
     display_device_info(device);
