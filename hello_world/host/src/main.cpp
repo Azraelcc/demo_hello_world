@@ -60,7 +60,7 @@ static cl_program program = NULL;
 cl_mem number_buf = NULL;
 
 // Function prototypes
-bool init();
+bool init(int id);
 
 void cleanup();
 
@@ -75,10 +75,17 @@ static void device_info_string(cl_device_id device, cl_device_info param, const 
 static void display_device_info(cl_device_id device);
 
 // Entry point.
-int main() {
+int main(int argc, char *argv[]) {
+    if (argc <= 1) {
+        fprintf(stderr, "Not enough parameter.\n");
+        return -1;
+    }
+
+    int id = atoi(argv[1]);
+
     cl_int status;
 
-    if (!init()) {
+    if (!init(id)) {
         return -1;
     }
 /*
@@ -107,7 +114,8 @@ int main() {
     checkError(status, "Failed to create buffer for number_buf");
 
     for (unsigned int i = 0; i < 10; i++) {
-        status = clEnqueueWriteBuffer(queue, number_buf, CL_FALSE, 0, sizeof(unsigned int), &i, 0, NULL, NULL);
+        unsigned int input = i * 10;
+        status = clEnqueueWriteBuffer(queue, number_buf, CL_FALSE, 0, sizeof(unsigned int), &input, 0, NULL, NULL);
         checkError(status, "Failed to transfer input number_buf");
 
         clFinish(queue);
@@ -125,6 +133,8 @@ int main() {
 
         clFinish(queue);
 
+        fprintf(stderr, "Input %d, Result %d\n", input, result);
+
         sleep(1);
     }
 
@@ -139,7 +149,7 @@ int main() {
 
 /////// HELPER FUNCTIONS ///////
 
-bool init() {
+bool init(int id) {
     cl_int status;
 
     if (!setCwdToExeDir()) {
@@ -173,38 +183,44 @@ bool init() {
     devices.reset(getDevices(platform, CL_DEVICE_TYPE_ALL, &num_devices));
     printf("Found %d devices.\n", num_devices);
 
-    for (int i = 0; i < num_devices; i++) {
-        // We'll just use the first device.
-        device = devices[i];
-        printf("Device %d:\n", i);
+//    if (id >= num_devices) {
+//        fprintf(stderr, "Invalid device id %d\n", id);
+//        return false;
+//    }
+//    // We'll just use the first device.
+//    device = devices[id];
+//    printf("Device %d:\n", id);
 
-        // Display some device information.
-        display_device_info(device);
+    device = devices[0];
 
-        // Create the context.
-        context = clCreateContext(NULL, 1, &device, &oclContextCallback, NULL, &status);
-        checkError(status, "Failed to create context");
+    // Display some device information.
+    display_device_info(device);
 
-        // Create the command queue.
-        queue = clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &status);
-        checkError(status, "Failed to create command queue");
+    // Create the context.
+    context = clCreateContext(NULL, 1, &device, &oclContextCallback, NULL, &status);
+    checkError(status, "Failed to create context");
 
-        // Create the program.
-        std::string binary_file = getBoardBinaryFile("hello_world", device);
-        printf("Using AOCX: %s\n", binary_file.c_str());
-        program = createProgramFromBinary(context, binary_file.c_str(), &device, 1);
+    // Create the command queue.
+    queue = clCreateCommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE, &status);
+    checkError(status, "Failed to create command queue");
 
-        // Build the program that was just created.
-        status = clBuildProgram(program, 0, NULL, "", NULL, NULL);
-        checkError(status, "Failed to build program");
+    // Create the program.
+    std::stringstream sstr;
+    sstr << "increasing_" << (id + 1);
+    std::string binary_file = getBoardBinaryFile(sstr.str().c_str(), device);
+    printf("Using AOCX: %s\n", binary_file.c_str());
+    program = createProgramFromBinary(context, binary_file.c_str(), &device, 1);
 
-        // Create the kernel - name passed in here must match kernel name in the
-        // original CL file, that was compiled into an AOCX file using the AOC tool
+    // Build the program that was just created.
+    status = clBuildProgram(program, 0, NULL, "", NULL, NULL);
+    checkError(status, "Failed to build program");
+
+    // Create the kernel - name passed in here must match kernel name in the
+    // original CL file, that was compiled into an AOCX file using the AOC tool
 //        const char *kernel_name = "hello_world";  // Kernel name, as defined in the CL file
-        const char *kernel_name = "increasing";  // Kernel name, as defined in the CL file
-        kernel = clCreateKernel(program, kernel_name, &status);
-        checkError(status, "Failed to create kernel");
-    }
+    const char *kernel_name = "increasing";  // Kernel name, as defined in the CL file
+    kernel = clCreateKernel(program, kernel_name, &status);
+    checkError(status, "Failed to create kernel");
 
     return true;
 }
