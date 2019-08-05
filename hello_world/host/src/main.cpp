@@ -93,8 +93,8 @@ int main(int argc, char *argv[]) {
     status = clSetKernelArg(kernel, 0, sizeof(cl_int), (void *) &thread_id_to_output);
     checkError(status, "Failed to set kernel arg 0");
 
-    printf("\nKernel initialization is complete.\n");
-    printf("Launching the kernel...\n\n");
+    fprintf(stderr, "\nKernel initialization is complete.\n");
+    fprintf(stderr, "Launching the kernel...\n\n");
 
     // Configure work set over which the kernel will execute
     size_t wgSize[3] = {work_group_size, 1, 1};
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
     status = clFinish(queue);
     checkError(status, "Failed to finish");
 
-    printf("\nKernel execution is complete.\n");
+    fprintf(stderr, "\nKernel execution is complete.\n");
 */
     number_buf = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(unsigned int), NULL, &status);
     checkError(status, "Failed to create buffer for number_buf");
@@ -159,21 +159,21 @@ bool init(int id) {
     // Get the OpenCL platform.
     platform = findPlatform("Intel(R) FPGA SDK for OpenCL(TM)");
     if (platform == NULL) {
-        printf("ERROR: Unable to find Intel(R) FPGA OpenCL platform.\n");
+        fprintf(stderr, "ERROR: Unable to find Intel(R) FPGA OpenCL platform.\n");
         return false;
     }
 
     // User-visible output - Platform information
     {
         char char_buffer[STRING_BUFFER_LEN];
-        printf("Querying platform for info:\n");
-        printf("==========================\n");
+        fprintf(stderr, "Querying platform for info:\n");
+        fprintf(stderr, "==========================\n");
         clGetPlatformInfo(platform, CL_PLATFORM_NAME, STRING_BUFFER_LEN, char_buffer, NULL);
-        printf("%-40s = %s\n", "CL_PLATFORM_NAME", char_buffer);
+        fprintf(stderr, "%-40s = %s\n", "CL_PLATFORM_NAME", char_buffer);
         clGetPlatformInfo(platform, CL_PLATFORM_VENDOR, STRING_BUFFER_LEN, char_buffer, NULL);
-        printf("%-40s = %s\n", "CL_PLATFORM_VENDOR ", char_buffer);
+        fprintf(stderr, "%-40s = %s\n", "CL_PLATFORM_VENDOR ", char_buffer);
         clGetPlatformInfo(platform, CL_PLATFORM_VERSION, STRING_BUFFER_LEN, char_buffer, NULL);
-        printf("%-40s = %s\n\n", "CL_PLATFORM_VERSION ", char_buffer);
+        fprintf(stderr, "%-40s = %s\n\n", "CL_PLATFORM_VERSION ", char_buffer);
     }
 
     // Query the available OpenCL devices.
@@ -181,7 +181,7 @@ bool init(int id) {
     cl_uint num_devices;
 
     devices.reset(getDevices(platform, CL_DEVICE_TYPE_ALL, &num_devices));
-    printf("Found %d devices.\n", num_devices);
+    fprintf(stderr, "Found %d devices.\n", num_devices);
 
     if (id >= num_devices) {
         fprintf(stderr, "Invalid device id %d\n", id);
@@ -189,7 +189,7 @@ bool init(int id) {
     }
     // We'll just use the first device.
     device = devices[id];
-    printf("Device %d:\n", id);
+    fprintf(stderr, "Device %d:\n", id);
 
 //    device = devices[0];
 
@@ -208,7 +208,7 @@ bool init(int id) {
     std::stringstream sstr;
     sstr << "increasing_" << (id + 1);
     std::string binary_file = getBoardBinaryFile(sstr.str().c_str(), device);
-    printf("Using AOCX: %s\n", binary_file.c_str());
+    fprintf(stderr, "Using AOCX: %s\n", binary_file.c_str());
     program = createProgramFromBinary(context, binary_file.c_str(), &device, 1);
 
     // Build the program that was just created.
@@ -245,32 +245,32 @@ void cleanup() {
 static void device_info_ulong(cl_device_id device, cl_device_info param, const char *name) {
     cl_ulong a;
     clGetDeviceInfo(device, param, sizeof(cl_ulong), &a, NULL);
-    printf("%-40s = %lu\n", name, a);
+    fprintf(stderr, "%-40s = %lu\n", name, a);
 }
 
 static void device_info_uint(cl_device_id device, cl_device_info param, const char *name) {
     cl_uint a;
     clGetDeviceInfo(device, param, sizeof(cl_uint), &a, NULL);
-    printf("%-40s = %u\n", name, a);
+    fprintf(stderr, "%-40s = %u\n", name, a);
 }
 
 static void device_info_bool(cl_device_id device, cl_device_info param, const char *name) {
     cl_bool a;
     clGetDeviceInfo(device, param, sizeof(cl_bool), &a, NULL);
-    printf("%-40s = %s\n", name, (a ? "true" : "false"));
+    fprintf(stderr, "%-40s = %s\n", name, (a ? "true" : "false"));
 }
 
 static void device_info_string(cl_device_id device, cl_device_info param, const char *name) {
     char a[STRING_BUFFER_LEN];
     clGetDeviceInfo(device, param, STRING_BUFFER_LEN, &a, NULL);
-    printf("%-40s = %s\n", name, a);
+    fprintf(stderr, "%-40s = %s\n", name, a);
 }
 
 // Query and display OpenCL information on device and runtime environment
 static void display_device_info(cl_device_id device) {
 
-    printf("Querying device for info:\n");
-    printf("========================\n");
+    fprintf(stderr, "Querying device for info:\n");
+    fprintf(stderr, "========================\n");
     device_info_string(device, CL_DEVICE_NAME, "CL_DEVICE_NAME");
     device_info_string(device, CL_DEVICE_VENDOR, "CL_DEVICE_VENDOR");
     device_info_uint(device, CL_DEVICE_VENDOR_ID, "CL_DEVICE_VENDOR_ID");
@@ -301,9 +301,9 @@ static void display_device_info(cl_device_id device) {
     {
         cl_command_queue_properties ccp;
         clGetDeviceInfo(device, CL_DEVICE_QUEUE_PROPERTIES, sizeof(cl_command_queue_properties), &ccp, NULL);
-        printf("%-40s = %s\n", "Command queue out of order? ",
+        fprintf(stderr, "%-40s = %s\n", "Command queue out of order? ",
                ((ccp & CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE) ? "true" : "false"));
-        printf("%-40s = %s\n", "Command queue profiling enabled? ",
+        fprintf(stderr, "%-40s = %s\n", "Command queue profiling enabled? ",
                ((ccp & CL_QUEUE_PROFILING_ENABLE) ? "true" : "false"));
     }
 }
